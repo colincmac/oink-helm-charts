@@ -1,5 +1,6 @@
 # Sample - Common Helm charts to be used in GitOps
 **This is a work in progress. This repo is a part of a larger effort to demonstrate secure workloads on Azure. This is for reference only and not meant for production workloads**
+
 Helm charts to assist with common deployment configurations on Azure.
 
 ## Features

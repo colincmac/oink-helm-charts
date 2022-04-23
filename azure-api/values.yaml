@@ -1,0 +1,135 @@
+nameOverride: ""
+fullnameOverride: ""
+
+deployment:
+  replicaCount: 1
+
+  image:
+    repository: nginx
+    pullPolicy: IfNotPresent
+    # Overrides the image tag whose default is the chart appVersion.
+    tag: ""
+  env: []
+  containerPorts:
+    - name: http
+      containerPort: 80
+      hostPort: 80
+      protocol: TCP
+  imagePullSecrets: []
+  podAnnotations: {}
+  podSecurityContext: {}
+    # fsGroup: 2000
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+  # livenessProbe: {}
+  # readinessProbe: {}
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+service:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+
+ingress:
+  className: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+          servicePort: 80
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+osm:
+  enabled: true
+  proxySslSecret: "core-platform/osm-private-nginx-client-cert"
+  ingressNamespace: core-platform
+  ingressService: ingress-nginx-private-controller
+  ingressServiceAccount: ingress-nginx-private
+  targetHttpsServicePort: 80
+
+azureIdentity:
+  enabled: false
+  selector: ""
+  resourceId: ""
+  clientId: ""
+  type: 0
+
+azureSecretsProvider:
+  enabled: false
+  # secretObjects: []
+  tenant: ""
+  keyVaultName: ""
+  usePodIdentity: true
+  mountPath: "/mnt/secrets-store"
+
+keda:
+  enabled: false
+  apiVersion: 'keda.sh/v1alpha1'
+  minReplicas: 1
+  maxReplicas: 5
+  pollingInterval: 30
+  cooldownPeriod: 300
+  triggers: 
+  - type: azure-monitor
+    metadata:
+      resourceURI: Microsoft.ContainerService/managedClusters/azureMonitorCluster
+      tenantId: xxx-xxx-xxx-xxx-xxx
+      subscriptionId: yyy-yyy-yyy-yyy-yyy
+      resourceGroupName: azureMonitor
+      metricName: kube_pod_status_ready
+      metricFilter: namespace eq 'default'
+      metricAggregationInterval: "0:1:0"
+      targetValue: "1"
+      activeDirectoryClientId: <client id value> # Optional, can use TriggerAuthentication as well
+      activeDirectoryClientIdFromEnv: CLIENT_ID_ENV_NAME # Optional, can use TriggerAuthentication as well
+      activeDirectoryClientPasswordFromEnv: CLIENT_PASSWORD_ENV_NAME # Optional, can use TriggerAuthentication as wel
+
+nodeSelector: {}
+  # kubernetes.io/os: linux
+  # compliance.colinmac.dev/pci-scope: out-of-scope
+  
+tolerations: []
+
+affinity: {}
+
+disruptionBudget:
+  enabled: false
+  minAvailable: 50%
+
+openApi:
+  enabled: false
+  docVersion: 1.0.0
+  docTitle: "Oink API"
+  forceHttps: true
+  hostNames: ""
+  hideSwaggerUI: true

@@ -1,0 +1,13 @@
+{{- if .Values.osm.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "secure-api.fullname" . }}
+  labels:
+    {{- include "secure-api.labels" . | nindent 4 }}
+spec:
+  minAvailable: 50%
+  selector:
+    matchLabels:
+      {{- include "secure-api.selectorLabels" . | nindent 6 }}
+{{- end }}

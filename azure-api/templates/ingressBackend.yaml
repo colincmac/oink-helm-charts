@@ -1,0 +1,24 @@
+{{- if .Values.osm.enabled }}
+{{- with .Values.osm }}
+apiVersion: policy.openservicemesh.io/v1alpha1
+kind: IngressBackend
+metadata:
+  name: {{ include "secure-api.fullname" $ }}
+  labels:
+    {{- include "secure-api.labels" $ | nindent 4 }}
+spec:
+  backends:
+  - name: {{ include "secure-api.fullname" $ }}
+    port:
+      number: {{ .targetHttpsServicePort }} 
+      protocol: https
+    tls:
+      skipClientCertValidation: false
+  sources:
+  - kind: Service
+    name: {{ .ingressService }}
+    namespace: {{ .ingressNamespace }}
+  - kind: AuthenticatedPrincipal
+    name: {{ printf "%s.%s.cluster.local" .ingressServiceAccount .ingressNamespace }}
+{{- end }}
+{{- end }}

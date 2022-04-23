@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "secure-api.fullname" . }}
+  labels:
+    {{- include "secure-api.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.deployment.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "secure-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.deployment.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "secure-api.selectorLabels" . | nindent 8 }}
+        {{- if .Values.azureIdentity.enabled }}
+        aadpodidbinding: {{ .Values.azureIdentity.selector }}
+        {{- end }}
+    spec:
+      {{- with .Values.deployment.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "secure-api.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.deployment.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.deployment.securityContext | nindent 12 }}
+          image: "{{ .Values.deployment.image.repository }}:{{ .Values.deployment.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.deployment.image.pullPolicy }}
+          ports:
+            {{- toYaml .Values.deployment.containerPorts | nindent 12 }}
+          livenessProbe:
+            {{- toYaml .Values.deployment.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.deployment.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.deployment.resources | nindent 12 }}
+          env:
+            {{- toYaml .Values.deployment.env | nindent 12 }}
+          {{- if .Values.openApi.enabled }}
+          {{- with .Values.openApi }}
+            - name: OpenApi__DocVersion
+              value: {{ .docVersion }}
+            - name: OpenApi__DocTitle
+              value: {{ .docTitle }}
+            - name: OpenApi__ForceHttps
+              value: {{ .forceHttps | quote }}
+            - name: OpenApi__HostNames
+              value: {{ .hostnames }}
+            - name: OpenApi__HideSwaggerUI
+              value: {{ .hideSwaggerUI | quote }}
+          {{- end }}
+          {{- end }}
+          {{- if .Values.azureSecretsProvider.mountSecrets }}
+          volumeMounts:
+            - name: secrets-store01-inline
+              mountPath: {{ .Values.azureSecretsProvider.mountPath }}
+              readOnly: true
+          {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.azureSecretsProvider.mountSecrets }}
+      volumes:
+        - name: secrets-store01-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: {{ include "secure-api.fullname" . }}
+      {{- end }}
+
+
